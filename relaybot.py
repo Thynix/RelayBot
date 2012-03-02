@@ -3,6 +3,7 @@ from twisted.internet import reactor, protocol
 from twisted.python import log
 from twisted.internet.endpoints import clientFromString
 from signal import signal, SIGINT
+import re
 
 import sys
 
@@ -42,7 +43,6 @@ class IRCRelayer(irc.IRCClient):
         self.privMsgResponse = privMsgResponse
         log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(name, network, channel))
 
-    #TODO: Possible override by FLIP bot to remove _## suffix.
     def formatUsername(self, username):
         return username
 
@@ -137,6 +137,14 @@ class RelayFactory(BaseFactory):
         #TODO: reconnecting factory thing
         connector.connect()
 
+#Remove the _<numbers> that FLIP puts on the end of usernames.
+class FLIPRelayer(IRCRelayer):
+    def formatUsername(self, username):
+        return re.sub("_\d+$", "", username)
+
+class FLIPFactory(RelayFactory):
+    protocol = FLIPRelayer
+
 def handler(signum, frame):
 	reactor.stop()
 
@@ -151,7 +159,7 @@ preamble = "This is a bot which relays traffic between #i2p-bridge on FLIP and #
 contact = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
 
 port = 6667
-botOneF = RelayFactory(hostname, "#i2p-bridge", preamble + contact, port)
+botOneF = FLIPFactory(hostname, "#i2p-bridge", preamble + contact, port)
 connectionOne = clientFromString(reactor, clientString(hostname, port))
 connectionOne.connect(botOneF)
 
