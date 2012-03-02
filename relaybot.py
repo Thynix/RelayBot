@@ -23,10 +23,8 @@ class Communicator:
     def relay(self, protocol, message):
         for identifier in self.protocolInstances.keys():
             if identifier == protocol.identifier:
-                log.msg("Not relaying to self")
                 continue
             instance = self.protocolInstances[identifier]
-            log.msg(identifier, instance)
             instance.twoWaySay(message)
 
 #Global scope: all protocol instances will need this.
@@ -44,52 +42,59 @@ class IRCRelayer(irc.IRCClient):
         self.privMsgResponse = privMsgResponse
         log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(name, network, channel))
 
+    #TODO: Possible override by FLIP bot to remove _## suffix.
+    def formatUsername(self, username):
+        return "[%s]"%username
+
     def relay(self, message):
         communicator.relay(self, message)
 
     def signedOn(self):
-        log.msg("[%s] Connected to network"%self.network)
+        log.msg("[%s] Connected to network."%self.network)
         self.join(self.channel, "")
     
     def connectionLost(self, reason):
-        log.msg("[%s] Connection lost, unregistering"%self.network)
+        log.msg("[%s] Connection lost, unregistering."%self.network)
         communicator.unregister(self)
     
     def twoWaySay(self, message, args=None):
         self.say(self.channel, message)
     
     def joined(self, channel):
-        log.msg("I joined channel %s, registering"%channel)
+        log.msg("Joined channel %s, registering."%channel)
         communicator.register(self)
     
     def privmsg(self, user, channel, message):
         user = user.split("!")[0]
-        self.relay("[{0}] {1}".format(user,message))
-        if message.startswith(self.nickname + ':'):
-            log.msg("%s sent me privmsg."%user)
+        #If someone addresses the bot directly, respond in the same way.
+        if channel == self.nickname:
+            log.msg("Recieved privmsg from %s."%user)
             self.msg(user, self.privMsgResponse)
+        else:
+            self.relay("%s %s"%(self.formatUsername(user), message))
+            if message.startswith(self.nickname + ':'):
+                self.say(self.channel, self.privMsgResponse)
+                #For consistancy, if anyone responds to the bot's response:
+                self.relay("%s %s"%(self.formatUsername(self.nickname), self.privMsgResponse))
     
     def kickedFrom(self, channel, kicker, message):
         log.msg("Kicked by %s. Message \"%s\""%(kicker, message))
         communicator.unregister(self)
     
-    def nickChanged(self, nick):
-        log.msg("My nick is now %s"%nick)
-    
     def userJoined(self, user, channel):
-        self.relay("%s joined"%user)
+        self.relay("%s joined."%user)
     
     def userLeft(self, user, channel):
-        self.relay("%s left"%user)
+        self.relay("%s left."%user)
     
     def userQuit(self, user, quitMessage):
-        user.relay("User %s quit (%s)"%(user, quitMessage))
+        user.relay("%s quit. (%s)"%(user, quitMessage))
     
     def action(self, user, channel, data):
         self.relay("* %s %s"%(user, data))
     
     def userRenamed(self, oldname, newname):
-        self.relay("User %s changed nick to %s"%(oldname, newname))
+        self.relay("%s is now known as %s."%(oldname, newname))
     
      
 class BaseFactory(protocol.ClientFactory):
