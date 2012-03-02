@@ -44,7 +44,7 @@ class IRCRelayer(irc.IRCClient):
 
     #TODO: Possible override by FLIP bot to remove _## suffix.
     def formatUsername(self, username):
-        return "[%s]"%username
+        return username
 
     def relay(self, message):
         communicator.relay(self, message)
@@ -71,30 +71,30 @@ class IRCRelayer(irc.IRCClient):
             log.msg("Recieved privmsg from %s."%user)
             self.msg(user, self.privMsgResponse)
         else:
-            self.relay("%s %s"%(self.formatUsername(user), message))
+            self.relay("[%s] %s"%(self.formatUsername(user), message))
             if message.startswith(self.nickname + ':'):
                 self.say(self.channel, self.privMsgResponse)
                 #For consistancy, if anyone responds to the bot's response:
-                self.relay("%s %s"%(self.formatUsername(self.nickname), self.privMsgResponse))
+                self.relay("[%s] %s"%(self.formatUsername(self.nickname), self.privMsgResponse))
     
     def kickedFrom(self, channel, kicker, message):
         log.msg("Kicked by %s. Message \"%s\""%(kicker, message))
         communicator.unregister(self)
     
     def userJoined(self, user, channel):
-        self.relay("%s joined."%user)
+        self.relay("%s joined."%self.formatUsername(user))
     
     def userLeft(self, user, channel):
-        self.relay("%s left."%user)
+        self.relay("%s left."%self.formatUsername(user))
     
     def userQuit(self, user, quitMessage):
-        user.relay("%s quit. (%s)"%(user, quitMessage))
+        user.relay("%s quit. (%s)"%(self.formatUsername(user), quitMessage))
     
     def action(self, user, channel, data):
-        self.relay("* %s %s"%(user, data))
+        self.relay("* %s %s"%(self.formatUsername(user), data))
     
     def userRenamed(self, oldname, newname):
-        self.relay("%s is now known as %s."%(oldname, newname))
+        self.relay("%s is now known as %s."%(self.formatUsername(oldname), self.formatUsername(newname)))
     
      
 class BaseFactory(protocol.ClientFactory):
