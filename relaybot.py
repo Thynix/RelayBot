@@ -36,13 +36,13 @@ class IRCRelayer(irc.IRCClient):
     realname = "Relay P. Botternson"
     username = "RelayBot"
     
-    def __init__(self, name, network, channel, identifier):
+    def __init__(self, name, network, channel, identifier, privMsgResponse):
         self.network = network
         self.channel = channel
         self.nickname = name
         self.identifier = identifier
-        self.privMsgResponse = "This is a relay bot between I2P #flip-bridge and FLIP #i2p-bridge. operhiem1 <Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI>"
-        log.msg("IRC Relay created. Name: %s | Network: %s "%(name, network))
+        self.privMsgResponse = privMsgResponse
+        log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(name, network, channel))
 
     def relay(self, message):
         communicator.relay(self, message)
@@ -56,7 +56,6 @@ class IRCRelayer(irc.IRCClient):
         communicator.unregister(self)
     
     def twoWaySay(self, message, args=None):
-        log.msg("[TwoWay] Saying %s into channel %s"%(message, self.channel))
         self.say(self.channel, message)
     
     def joined(self, channel):
@@ -114,16 +113,17 @@ class BaseFactory(protocol.ClientFactory):
 class RelayFactory(BaseFactory):
     protocol = IRCRelayer
     
-    def __init__(self, network, channel, port=6667, name = "RelayBot"):
+    def __init__(self, network, channel, privMsgResponse = "I am a bot", port=6667, name = "RelayBot"):
         self.network = network
         self.channel = channel
         self.name = name
         self.port = port
+        self.privMsgResponse = privMsgResponse
         self.terminated = False
     
     def buildProtocol(self, addr):
         identifier = (self.network, self.channel, self.port)
-        x = self.protocol(self.name, self.network, self.channel, identifier)
+        x = self.protocol(self.name, self.network, self.channel, identifier, self.privMsgResponse)
         x.factory = self
         return x
     
@@ -141,13 +141,21 @@ timeout = 120
 def clientString(hostname, port):
     return "tcp:host={0}:port={1}".format(hostname, port)
 
-botOneF = RelayFactory(hostname, "#i2p-bridge", 6667)
-connectionOne = clientFromString(reactor, clientString(hostname, 6667))
-botOneDeferred = connectionOne.connect(botOneF)
+preamble = "This is a bot which relays traffic between #i2p-bridge on FLIP and #flip-bridge on I2Prc. "
 
-botTwoF = RelayFactory(hostname, "#test-lol", 6669)
-connectionTwo = clientFromString(reactor, clientString(hostname, 6669))
-botTwoDeferred = connectionTwo.connect(botTwoF)
+contact = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
+
+port = 6667
+botOneF = RelayFactory(hostname, "#i2p-bridge", preamble + contact, port)
+connectionOne = clientFromString(reactor, clientString(hostname, port))
+connectionOne.connect(botOneF)
+
+contact = "I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI"
+
+port = 6669
+botTwoF = RelayFactory(hostname, "#test-lol", preamble + contact, port)
+connectionTwo = clientFromString(reactor, clientString(hostname, port))
+connectionTwo.connect(botTwoF)
 
 reactor.callWhenRunning(signal, SIGINT, handler)
 reactor.run()
