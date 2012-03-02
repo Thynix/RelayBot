@@ -65,8 +65,7 @@ class IRCRelayer(irc.IRCClient):
     
     def privmsg(self, user, channel, message):
         user = user.split("!")[0]
-        log.msg("Got message \"%s\""%message)
-        self.relay(message)
+        self.relay("[{0}] {1}".format(user,message))
         if message.startswith(self.nickname + ':'):
             log.msg("%s sent me privmsg."%user)
             self.msg(user, self.privMsgResponse)
