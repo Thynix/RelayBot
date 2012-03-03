@@ -35,7 +35,7 @@ def main():
         else:
             factory = RelayFactory(host, channel, privReply, port)
         
-        reactor.connectTCP(host, port, factory)
+        reactor.connectTCP(host, port, factory, timeout)
     
     reactor.callWhenRunning(signal, SIGINT, handler)
     reactor.run()
