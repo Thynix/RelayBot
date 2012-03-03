@@ -1,5 +1,6 @@
 from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol
+from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.python import log
 from twisted.internet.endpoints import clientFromString
 from signal import signal, SIGINT
@@ -97,26 +98,10 @@ class IRCRelayer(irc.IRCClient):
         self.relay("%s is now known as %s."%(self.formatUsername(oldname), self.formatUsername(newname)))
     
      
-class BaseFactory(protocol.ClientFactory):
-    noisy = False
-    def clientConnectionLost(self,connector,reason):
-        if hasattr(self, "terminated"):
-            if self.terminated:
-                connector.disconnect()
-                return log.msg("ClientFactory %s closing down"%self)
-        log.msg('Disconnect. Reason: %s'%reason.getErrorMessage())
-        reactor.callLater(5, connector.connect)
-
-    def clientConnectionFailed(self,connector,reason):
-        if hasattr(self, "terminated"):
-            if self.terminated:
-                connector.disconnect()
-                return log.msg("ClientFactory %s closing down"%self)
-        log.msg('Disconnect. Reason: %s'%reason.getErrorMessage())
-        reactor.callLater(5, connector.connect)
-
-class RelayFactory(BaseFactory):
+class RelayFactory(ReconnectingClientFactory):
     protocol = IRCRelayer
+    #Log information which includes reconnection status.
+    noisy = True
     
     def __init__(self, network, channel, privMsgResponse = "I am a bot", port=6667, name = "RelayBot"):
         self.network = network
@@ -124,18 +109,14 @@ class RelayFactory(BaseFactory):
         self.name = name
         self.port = port
         self.privMsgResponse = privMsgResponse
-        self.terminated = False
     
     def buildProtocol(self, addr):
+        #Connected - reset reconnect attempt delay.
+        self.resetDelay()
         identifier = (self.network, self.channel, self.port)
         x = self.protocol(self.name, self.network, self.channel, identifier, self.privMsgResponse)
         x.factory = self
         return x
-    
-    def clientConnectionLost(self, connector, reason):
-        """If we get disconnected, reconnect to server."""
-        #TODO: reconnecting factory thing
-        connector.connect()
 
 #Remove the _<numbers> that FLIP puts on the end of usernames.
 class FLIPRelayer(IRCRelayer):
@@ -151,24 +132,24 @@ def handler(signum, frame):
 hostname = "localhost"
 timeout = 120
 
-def clientString(hostname, port):
-    return "tcp:host={0}:port={1}".format(hostname, port)
-
 preamble = "This is a bot which relays traffic between #i2p-bridge on FLIP and #flip-bridge on I2Prc. "
 
-contact = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
+contactFreenet = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
 
-port = 6667
-botOneF = FLIPFactory(hostname, "#i2p-bridge", preamble + contact, port)
-connectionOne = clientFromString(reactor, clientString(hostname, port))
-connectionOne.connect(botOneF)
+contactI2P = "I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI"
 
-contact = "I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI"
+for host, port, channel, privReply, kind in [(hostname, 6667, "#i2p-bridge", preamble+contactFreenet, "FLIP"),\
+                                             (hostname, 6669, "#test-lol", preamble+contactI2P, None)]:
 
-port = 6669
-botTwoF = RelayFactory(hostname, "#test-lol", preamble + contact, port)
-connectionTwo = clientFromString(reactor, clientString(hostname, port))
-connectionTwo.connect(botTwoF)
+    #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
+    #(ReconnectingClientFactory equivalent for endpoints.)
+    factory = None
+    if kind == "FLIP":
+        factory = FLIPFactory(host, channel, privReply, port)
+    else:
+        factory = RelayFactory(host, channel, privReply, port)
+
+    reactor.connectTCP(host, port, factory)
 
 reactor.callWhenRunning(signal, SIGINT, handler)
 reactor.run()
