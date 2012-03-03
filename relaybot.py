@@ -13,7 +13,7 @@ import re, sys
 
 log.startLogging(sys.stdout)
 
-__version__ = "0.2"
+__version__ = "0.1"
 application = service.Application("RelayBot")
 
 def main():
