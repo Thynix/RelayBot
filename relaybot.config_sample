@@ -1,0 +1,17 @@
+#Can override these defaults per-section.
+[DEFAULT]
+#Twisted's default is 30 seconds.
+timeout=120
+port=6667
+channel=#a-bridged-channel
+#Can change to allow more specialized behavior.
+mode=Default
+#Response sent when addressed with <nickname>: or privmsg'd.
+info=This is a relay bot.
+
+[Freenode]
+host=irc.freenode.net
+
+[Umich]
+host=irc.umich.edu
+

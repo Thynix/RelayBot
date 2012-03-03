@@ -5,6 +5,7 @@ from twisted.python import log
 from twisted.internet.endpoints import clientFromString
 from twisted.application import service
 from signal import signal, SIGINT
+from ConfigParser import SafeConfigParser
 import re, sys
 
 #
@@ -17,19 +18,19 @@ __version__ = "0.1"
 application = service.Application("RelayBot")
 
 def main():
-    host = "localhost"
-    timeout = 120
+    config = SafeConfigParser()
+    config.read("relaybot.config")
+    defaults = config.defaults()
     
-    preamble = "This is a bot which relays traffic between #i2p-bridge on FLIP and #flip-bridge on I2Prc. "
-    
-    contactFreenet = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
-    
-    contactI2P = "I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI"
-    
-    #Configure channels here:
-    #Tuple order is (hostname or IP, port, response when privmsg'd or referred to in chat, special behavior)
-    for host, port, channel, privReply, kind in [(host, 6667, "#i2p-bridge", preamble+contactFreenet, "FLIP"),\
-                                                 (host, 6669, "#test-lol", preamble+contactI2P, None)]:
+    for section in config.sections():
+        timeout = config.get(section, "timeout") or defaults["timeout"]
+        host = config.get(section, "host") or defaults["host"]
+        port = config.get(section, "port") or defaults["port"]
+        channel = config.get(section, "channel") or defaults["channel"]
+        privReply = config.get(section, "info") or defaults["info"]
+        kind = config.get(section, "mode") or defaults["mode"]
+
+        print(section, timeout, host, port, channel, privReply, kind)
         
         #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
         #(ReconnectingClientFactory equivalent for endpoints.)
@@ -39,7 +40,7 @@ def main():
         else:
             factory = RelayFactory(host, channel, privReply, port)
         
-        reactor.connectTCP(host, port, factory, timeout)
+        reactor.connectTCP(host, int(port), factory, int(timeout))
     
     reactor.callWhenRunning(signal, SIGINT, handler)
 
