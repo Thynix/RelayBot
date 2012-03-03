@@ -12,6 +12,34 @@ log.startLogging(sys.stdout)
 
 __version__ = "0.2"
 
+def main():
+    host = "localhost"
+    timeout = 120
+    
+    preamble = "This is a bot which relays traffic between #i2p-bridge on FLIP and #flip-bridge on I2Prc. "
+    
+    contactFreenet = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
+    
+    contactI2P = "I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI"
+    
+    #Configure channels here:
+    #Tuple order is (hostname or IP, port, response when privmsg'd or referred to in chat, special behavior)
+    for host, port, channel, privReply, kind in [(host, 6667, "#i2p-bridge", preamble+contactFreenet, "FLIP"),\
+                                                 (host, 6669, "#test-lol", preamble+contactI2P, None)]:
+        
+        #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
+        #(ReconnectingClientFactory equivalent for endpoints.)
+        factory = None
+        if kind == "FLIP":
+            factory = FLIPFactory(host, channel, privReply, port)
+        else:
+            factory = RelayFactory(host, channel, privReply, port)
+        
+        reactor.connectTCP(host, port, factory)
+    
+    reactor.callWhenRunning(signal, SIGINT, handler)
+    reactor.run()
+
 class Communicator:
     def __init__(self):
         self.protocolInstances = {}
@@ -129,27 +157,5 @@ class FLIPFactory(RelayFactory):
 def handler(signum, frame):
 	reactor.stop()
 
-hostname = "localhost"
-timeout = 120
-
-preamble = "This is a bot which relays traffic between #i2p-bridge on FLIP and #flip-bridge on I2Prc. "
-
-contactFreenet = "Freemail: operhiem1@oblda5d6jfleur3uomyws52uljrvo4l2jbuwcwsuk54tcn3qi5ehqwlsojvdaytcjnseslbnki3fozckj5ztaqkblb3gw3dwmreeg6dhk5te2ncyj55hgmkmkq4xoytworgdkrdpgvvsyqkrifbucqkf.freemail"
-
-contactI2P = "I2P-bote: operhiem1@QcTYSRYota-9WDSgfoUfaOkeSiPc7cyBuHqbgJ28YmilVk66-n1U1Zf1sCwTS2eDxlk4iwMZuufRmATsPJdkipw4EuRfaHLXKktwtkSTXNhciDsTMgJn7Ka14ayVuuPiF2tKzyaCTV4H2vc7sUkOKLsH9lyccVnFdYOnL~bkZiCGDI"
-
-for host, port, channel, privReply, kind in [(hostname, 6667, "#i2p-bridge", preamble+contactFreenet, "FLIP"),\
-                                             (hostname, 6669, "#test-lol", preamble+contactI2P, None)]:
-
-    #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
-    #(ReconnectingClientFactory equivalent for endpoints.)
-    factory = None
-    if kind == "FLIP":
-        factory = FLIPFactory(host, channel, privReply, port)
-    else:
-        factory = RelayFactory(host, channel, privReply, port)
-
-    reactor.connectTCP(host, port, factory)
-
-reactor.callWhenRunning(signal, SIGINT, handler)
-reactor.run()
+if __name__ == "__main__":
+        main()
