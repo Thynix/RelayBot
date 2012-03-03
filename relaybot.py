@@ -3,6 +3,7 @@ from twisted.internet import reactor, protocol
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.python import log
 from twisted.internet.endpoints import clientFromString
+from twisted.application import service
 from signal import signal, SIGINT
 import re
 
@@ -11,6 +12,7 @@ import sys
 log.startLogging(sys.stdout)
 
 __version__ = "0.2"
+application = service.Application("RelayBot")
 
 def main():
     host = "localhost"
@@ -38,7 +40,6 @@ def main():
         reactor.connectTCP(host, port, factory, timeout)
     
     reactor.callWhenRunning(signal, SIGINT, handler)
-    reactor.run()
 
 class Communicator:
     def __init__(self):
@@ -157,5 +158,6 @@ class FLIPFactory(RelayFactory):
 def handler(signum, frame):
 	reactor.stop()
 
-if __name__ == "__main__":
+#Main if run as script, builtin for twistd.
+if __name__ in ["__main__", "__builtin__"]:
         main()
