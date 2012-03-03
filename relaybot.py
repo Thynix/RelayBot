@@ -5,9 +5,11 @@ from twisted.python import log
 from twisted.internet.endpoints import clientFromString
 from twisted.application import service
 from signal import signal, SIGINT
-import re
+import re, sys
 
-import sys
+#
+# RelayBot is a derivative of http://code.google.com/p/relaybot/
+#
 
 log.startLogging(sys.stdout)
 
