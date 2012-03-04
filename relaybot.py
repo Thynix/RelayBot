@@ -77,7 +77,7 @@ class IRCRelayer(irc.IRCClient):
         log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(name, network, channel))
 
     def formatUsername(self, username):
-        return username
+        return username.split("!")[0]
 
     def relay(self, message):
         communicator.relay(self, message)
@@ -98,7 +98,6 @@ class IRCRelayer(irc.IRCClient):
         communicator.register(self)
     
     def privmsg(self, user, channel, message):
-        user = user.split("!")[0]
         #If someone addresses the bot directly, respond in the same way.
         if channel == self.nickname:
             log.msg("Recieved privmsg from %s."%user)
@@ -153,7 +152,7 @@ class RelayFactory(ReconnectingClientFactory):
 #Remove the _<numbers> that FLIP puts on the end of usernames.
 class FLIPRelayer(IRCRelayer):
     def formatUsername(self, username):
-        return re.sub("_\d+$", "", username)
+        return re.sub("_\d+$", "", IRCRelayer.formatUsername(self, username))
 
 class FLIPFactory(RelayFactory):
     protocol = FLIPRelayer
