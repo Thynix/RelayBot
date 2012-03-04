@@ -23,13 +23,17 @@ def main():
     defaults = config.defaults()
     
     for section in config.sections():
-        timeout = config.get(section, "timeout") or defaults["timeout"]
-        host = config.get(section, "host") or defaults["host"]
-        port = config.get(section, "port") or defaults["port"]
-        nick = config.get(section, "nick") or defaults["nick"]
-        channel = config.get(section, "channel") or defaults["channel"]
-        privReply = config.get(section, "info") or defaults["info"]
-        kind = config.get(section, "mode") or defaults["mode"]
+        
+        def get(option):
+            return config.get(section, option) or defaults[option]
+        
+        timeout = get("timeout")
+        host = get("host")
+        port = get("port")
+        nick = get("nick")
+        channel = get("channel")
+        privReply = get("info")
+        kind = get("mode")
         
         #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
         #(ReconnectingClientFactory equivalent for endpoints.)
