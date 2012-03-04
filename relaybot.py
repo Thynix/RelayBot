@@ -26,20 +26,20 @@ def main():
         timeout = config.get(section, "timeout") or defaults["timeout"]
         host = config.get(section, "host") or defaults["host"]
         port = config.get(section, "port") or defaults["port"]
+        nick = config.get(section, "nick") or defaults["nick"]
         channel = config.get(section, "channel") or defaults["channel"]
         privReply = config.get(section, "info") or defaults["info"]
         kind = config.get(section, "mode") or defaults["mode"]
-
-        print(section, timeout, host, port, channel, privReply, kind)
         
         #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
         #(ReconnectingClientFactory equivalent for endpoints.)
         factory = None
         if kind == "FLIP":
-            factory = FLIPFactory(host, channel, privReply, port)
+            factory = FLIPFactory
         else:
-            factory = RelayFactory(host, channel, privReply, port)
+            factory = RelayFactory
         
+        factory = factory(host, channel, port, nick, privReply)
         reactor.connectTCP(host, int(port), factory, int(timeout))
     
     reactor.callWhenRunning(signal, SIGINT, handler)
@@ -134,7 +134,7 @@ class RelayFactory(ReconnectingClientFactory):
     #Log information which includes reconnection status.
     noisy = True
     
-    def __init__(self, network, channel, privMsgResponse = "I am a bot", port=6667, name = "RelayBot"):
+    def __init__(self, network, channel, port, name, privMsgResponse):
         self.network = network
         self.channel = channel
         self.name = name
