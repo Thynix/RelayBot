@@ -4,6 +4,7 @@
 timeout=120
 port=6667
 channel=#a-bridged-channel
+nick=RelayBot
 #Can change to allow more specialized behavior.
 mode=Default
 #Response sent when addressed with <nickname>: or privmsg'd.
