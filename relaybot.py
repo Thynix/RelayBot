@@ -27,24 +27,22 @@ def main():
         def get(option):
             return config.get(section, option) or defaults[option]
         
-        timeout = get("timeout")
-        host = get("host")
-        port = get("port")
-        nick = get("nick")
-        channel = get("channel")
-        privReply = get("info")
-        kind = get("mode")
+        options = {}
+        for option in [ "timeout", "host", "port", "nick", "channel", "info" ]:
+            options[option] = get(option)
+        
+        mode = get("mode")
         
         #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
         #(ReconnectingClientFactory equivalent for endpoints.)
         factory = None
-        if kind == "FLIP":
+        if mode == "FLIP":
             factory = FLIPFactory
         else:
             factory = RelayFactory
         
-        factory = factory(host, channel, port, nick, privReply)
-        reactor.connectTCP(host, int(port), factory, int(timeout))
+        factory = factory(options)
+        reactor.connectTCP(options['host'], int(options['port']), factory, int(options['timeout']))
     
     reactor.callWhenRunning(signal, SIGINT, handler)
 
@@ -72,13 +70,13 @@ class IRCRelayer(irc.IRCClient):
     realname = "Relay P. Botternson"
     username = "RelayBot"
     
-    def __init__(self, name, network, channel, identifier, privMsgResponse):
-        self.network = network
-        self.channel = channel
-        self.nickname = name
-        self.identifier = identifier
-        self.privMsgResponse = privMsgResponse
-        log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(name, network, channel))
+    def __init__(self, config):
+        self.network = config['host']
+        self.channel = config['channel']
+        self.nickname = config['nick']
+        self.identifier = config['identifier']
+        self.privMsgResponse = config['info']
+        log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(self.nickname, self.network, self.channel))
 
     def formatUsername(self, username):
         return username.split("!")[0]
@@ -138,18 +136,14 @@ class RelayFactory(ReconnectingClientFactory):
     #Log information which includes reconnection status.
     noisy = True
     
-    def __init__(self, network, channel, port, name, privMsgResponse):
-        self.network = network
-        self.channel = channel
-        self.name = name
-        self.port = port
-        self.privMsgResponse = privMsgResponse
+    def __init__(self, config):
+        config["identifier"] = "{0}{1}".format(config["host"], config["port"])
+        self.config = config
     
     def buildProtocol(self, addr):
         #Connected - reset reconnect attempt delay.
         self.resetDelay()
-        identifier = (self.network, self.channel, self.port)
-        x = self.protocol(self.name, self.network, self.channel, identifier, self.privMsgResponse)
+        x = self.protocol(self.config)
         x.factory = self
         return x
 
