@@ -164,15 +164,23 @@ class FLIPFactory(RelayFactory):
 #Identify with NickServ upon connecting, and wait for recognition before joining the channel.
 class NickServRelayer(IRCRelayer):
     NickServ = "nickserv"
+
     def signedOn(self):
-        log.msg("[%s] Connected to network. Identifying with %s."%(self.network, NickServRelayer.NickServ))
-        self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.nickname, self.password))
+        log.msg("[%s] Connected to network."%self.network)
+        if self.nickname == self.desiredNick:
+            log.msg("[%s] Identifying with %s."%(self.network, NickServRelayer.NickServ))
+            self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
+        else:
+            log.msg("[%s] Using GHOST to reclaim nick %s."%(self.network, self.nickname))
+            self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.desiredNick, self.password))
     
     def noticed(self, user, channel, message):
         if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
                     and message == "Password accepted -- you are now recognized.":
             log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
-            self.setNick(self.nickname)
+            if self.nickname != self.desiredNick:
+                log.msg("[%s] GHOST successful, reclaiming nick."%self.network)
+                self.setNick(self.desiredNick)
             self.join(self.channel, "")
         else:
             log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
@@ -181,6 +189,8 @@ class NickServRelayer(IRCRelayer):
         IRCRelayer.__init__(self, config)
         #super(NickServRelayer, self).__init__(config)
         self.password = config['nickServPassword']
+        self.haveDesiredNick = True
+        self.desiredNick = self.nickname
 
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
