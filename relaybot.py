@@ -128,7 +128,7 @@ class IRCRelayer(irc.IRCClient):
         self.relay("%s left."%self.formatUsername(user))
     
     def userQuit(self, user, quitMessage):
-        user.relay("%s quit. (%s)"%(self.formatUsername(user), quitMessage))
+        self.relay("%s quit. (%s)"%(self.formatUsername(user), quitMessage))
     
     def action(self, user, channel, data):
         self.relay("* %s %s"%(self.formatUsername(user), data))
