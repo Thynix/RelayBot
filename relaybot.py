@@ -56,6 +56,9 @@ class Communicator:
     def register(self, protocol):
         self.protocolInstances[protocol.identifier] = protocol
 
+    def isRegistered(self, protocol):
+        return protocol.identifier in self.protocolInstances
+
     def unregister(self, protocol):
         if protocol.identifier not in self.protocolInstances:
             log.msg("No protocol instance with identifier %s."%protocol.identifier)
@@ -177,6 +180,9 @@ class NickServRelayer(IRCRelayer):
     def noticed(self, user, channel, message):
         if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
                     and message == "Password accepted -- you are now recognized.":
+            if communicator.isRegistered(self):
+                log.msg("[%s] Recieved duplicate password acception from %s."%(self.network, NickServRelayer.NickServ))
+                return
             log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
             if self.nickname != self.desiredNick:
                 log.msg("[%s] GHOST successful, reclaiming nick."%self.network)
