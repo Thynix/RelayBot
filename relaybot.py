@@ -36,10 +36,13 @@ def main():
         #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
         #(ReconnectingClientFactory equivalent for endpoints.)
         factory = None
-        if mode == "FLIP":
-            factory = FLIPFactory
-        else:
+        if mode == "Default":
             factory = RelayFactory
+        elif mode == "FLIP":
+            factory = FLIPFactory
+        elif mode == "NickServ":
+            factory = NickServFactory
+            options["nickServPassword"] = get("nickServPassword")
         
         factory = factory(options)
         reactor.connectTCP(options['host'], int(options['port']), factory, int(options['timeout']))
@@ -154,6 +157,29 @@ class FLIPRelayer(IRCRelayer):
 
 class FLIPFactory(RelayFactory):
     protocol = FLIPRelayer
+
+#Identify with NickServ upon connecting, and wait for recognition before joining the channel.
+class NickServRelayer(IRCRelayer):
+    NickServ = "nickserv"
+    def signedOn(self):
+        log.msg("[%s] Connected to network. Identifying with %s."%(self.network, NickServRelayer.NickServ))
+        self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
+    
+    def noticed(self, user, channel, message):
+        if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
+                    and message == "Password accepted -- you are now recognized.":
+            log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
+            self.join(self.channel, "")
+        else:
+            log.msg("[%s] Recieved \"%s\" from %s while waiting for %s response."%(self.network, message, user, NickServRelayer.NickServ))
+    
+    def __init__(self, config):
+        IRCRelayer.__init__(self, config)
+        #super(NickServRelayer, self).__init__(config)
+        self.password = config['nickServPassword']
+
+class NickServFactory(RelayFactory):
+    protocol = NickServRelayer
 
 def handler(signum, frame):
 	reactor.stop()

@@ -11,6 +11,8 @@ info=This is a relay bot.
 
 [Freenode]
 host=irc.freenode.net
+mode=NickServ
+nickServPassword=applesAndOranges
 
 [Umich]
 host=irc.umich.edu
