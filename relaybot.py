@@ -143,7 +143,7 @@ class RelayFactory(ReconnectingClientFactory):
     noisy = True
     
     def __init__(self, config):
-        config["identifier"] = "{0}{1}".format(config["host"], config["port"])
+        config["identifier"] = "{0}{1}{2}".format(config["host"], config["port"], config["channel"])
         self.config = config
     
     def buildProtocol(self, addr):
