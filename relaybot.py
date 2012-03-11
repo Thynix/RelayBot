@@ -163,12 +163,13 @@ class NickServRelayer(IRCRelayer):
     NickServ = "nickserv"
     def signedOn(self):
         log.msg("[%s] Connected to network. Identifying with %s."%(self.network, NickServRelayer.NickServ))
-        self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
+        self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.nickname, self.password))
     
     def noticed(self, user, channel, message):
         if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
                     and message == "Password accepted -- you are now recognized.":
             log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
+            self.setNick(self.nickname)
             self.join(self.channel, "")
         else:
             log.msg("[%s] Recieved \"%s\" from %s while waiting for %s response."%(self.network, message, user, NickServRelayer.NickServ))
