@@ -57,6 +57,9 @@ class Communicator:
         self.protocolInstances[protocol.identifier] = protocol
 
     def unregister(self, protocol):
+        if protocol.identifier not in self.protocolInstances:
+            log.msg("No protocol instance with identifier %s."%protocol.identifier)
+            return
         del self.protocolInstances[protocol.identifier]
 
     def relay(self, protocol, message):
