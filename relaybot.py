@@ -175,7 +175,7 @@ class NickServRelayer(IRCRelayer):
             self.setNick(self.nickname)
             self.join(self.channel, "")
         else:
-            log.msg("[%s] Recieved \"%s\" from %s while waiting for %s response."%(self.network, message, user, NickServRelayer.NickServ))
+            log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
     
     def __init__(self, config):
         IRCRelayer.__init__(self, config)
