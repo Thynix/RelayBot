@@ -28,7 +28,7 @@ def main():
             return config.get(section, option) or defaults[option]
         
         options = {}
-        for option in [ "timeout", "host", "port", "nick", "channel", "info" ]:
+        for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat" ]:
             options[option] = get(option)
         
         mode = get("mode")
@@ -85,6 +85,7 @@ class IRCRelayer(irc.IRCClient):
         self.nickname = config['nick']
         self.identifier = config['identifier']
         self.privMsgResponse = config['info']
+        self.heartbeatInterval = float(config['heartbeat'])
         log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(self.nickname, self.network, self.channel))
 
     def formatUsername(self, username):
@@ -95,6 +96,7 @@ class IRCRelayer(irc.IRCClient):
 
     def signedOn(self):
         log.msg("[%s] Connected to network."%self.network)
+        self.startHeartbeat()
         self.join(self.channel, "")
     
     def connectionLost(self, reason):
@@ -170,6 +172,7 @@ class NickServRelayer(IRCRelayer):
 
     def signedOn(self):
         log.msg("[%s] Connected to network."%self.network)
+        self.startHeartbeat()
         if self.nickname == self.desiredNick:
             log.msg("[%s] Identifying with %s."%(self.network, NickServRelayer.NickServ))
             self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
