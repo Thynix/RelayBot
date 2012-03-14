@@ -183,10 +183,11 @@ class NickServRelayer(IRCRelayer):
     def noticed(self, user, channel, message):
         if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
                     and (message == "Password accepted -- you are now recognized." or message == "Ghost with your nickname has been killed."):
-            if communicator.isRegistered(self):
+            if self.passwordAccepted:
                 log.msg("[%s] Recieved duplicate password acception from %s."%(self.network, NickServRelayer.NickServ))
                 return
             log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
+            self.passwordAccepted = True
             if self.nickname != self.desiredNick:
                 log.msg("[%s] GHOST successful, reclaiming nick."%self.network)
                 self.setNick(self.desiredNick)
@@ -198,8 +199,8 @@ class NickServRelayer(IRCRelayer):
         IRCRelayer.__init__(self, config)
         #super(NickServRelayer, self).__init__(config)
         self.password = config['nickServPassword']
-        self.haveDesiredNick = True
         self.desiredNick = self.nickname
+        self.passwordAccepted = False
 
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
