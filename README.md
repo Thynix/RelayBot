@@ -15,7 +15,7 @@ This distribution includes `run.sh` for easier control of the daemon.
 ## Requirements
 
  - Python 2.6.6-ish or higher
- - Twisted: `aptitude install python-twisted`
+ - Twisted: `pip install Twisted`
 
 ## Usage
 
