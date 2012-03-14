@@ -177,12 +177,12 @@ class NickServRelayer(IRCRelayer):
             log.msg("[%s] Identifying with %s."%(self.network, NickServRelayer.NickServ))
             self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
         else:
-            log.msg("[%s] Using GHOST to reclaim nick %s."%(self.network, self.nickname))
+            log.msg("[%s] Using GHOST to reclaim nick %s."%(self.network, self.desiredNick))
             self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.desiredNick, self.password))
     
     def noticed(self, user, channel, message):
         if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
-                    and message == "Password accepted -- you are now recognized.":
+                    and (message == "Password accepted -- you are now recognized." or message == "Ghost with your nickname has been killed."):
             if communicator.isRegistered(self):
                 log.msg("[%s] Recieved duplicate password acception from %s."%(self.network, NickServRelayer.NickServ))
                 return
