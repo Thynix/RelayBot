@@ -158,8 +158,18 @@ class RelayFactory(ReconnectingClientFactory):
         x.factory = self
         return x
 
+class SilentJoinPart(IRCRelayer):
+    def userJoined(self, user, channel):
+        pass
+
+    def userLeft(self, user, channel):
+        pass
+
+    def userQuit(self, user, quitMessage):
+        pass
+
 #Remove the _<numbers> that FLIP puts on the end of usernames.
-class FLIPRelayer(IRCRelayer):
+class FLIPRelayer(SilentJoinPart):
     def formatUsername(self, username):
         return re.sub("_\d+$", "", IRCRelayer.formatUsername(self, username))
 
@@ -167,7 +177,7 @@ class FLIPFactory(RelayFactory):
     protocol = FLIPRelayer
 
 #Identify with NickServ upon connecting, and wait for recognition before joining the channel.
-class NickServRelayer(IRCRelayer):
+class NickServRelayer(SilentJoinPart):
     NickServ = "nickserv"
 
     def signedOn(self):
