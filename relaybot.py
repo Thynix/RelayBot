@@ -199,7 +199,7 @@ class NickServRelayer(IRCRelayer):
         IRCRelayer.__init__(self, config)
         #super(NickServRelayer, self).__init__(config)
         self.password = config['nickServPassword']
-        self.desiredNick = self.nickname
+        self.desiredNick = config['nick']
         self.passwordAccepted = False
 
 class NickServFactory(RelayFactory):
