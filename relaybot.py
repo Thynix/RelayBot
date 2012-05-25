@@ -192,15 +192,19 @@ class NickServRelayer(SilentJoinPart):
     
     def noticed(self, user, channel, message):
         #Either identification was successful, GHOSTing was successful, or the GHOST disconnected in the interim.
-        if IRCRelayer.formatUsername(self, user) == NickServRelayer.NickServ\
-                    and (message == "Password accepted -- you are now recognized." or message == "Ghost with your nickname has been killed." or message == "Nickname %s isn't currently in use."%self.desiredNick):
+        #NickServ implementations differ in the exact messages, and contain bolding/formatting.
+        if IRCRelayer.formatUsername(self, user).lower() == NickServRelayer.NickServ\
+            and (message.lower().startswith("password accepted") or\
+                 message.lower() == "ghost with your nickname has been killed." or\
+                 message.lower() == "ghost with your nick has been killed." or\
+                 message.lower().endswith("isn't currently in use.")):
             if self.passwordAccepted:
                 log.msg("[%s] Recieved duplicate password acception from %s."%(self.network, NickServRelayer.NickServ))
                 return
             log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
             self.passwordAccepted = True
             if self.nickname != self.desiredNick:
-                log.msg("[%s] GHOST successful, reclaiming nick."%self.network)
+                log.msg("[%s] GHOST successful, reclaiming nick %s."%(self.network,self.desiredNick))
                 self.setNick(self.desiredNick)
             self.join(self.channel, "")
         else:
