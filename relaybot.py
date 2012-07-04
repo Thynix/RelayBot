@@ -25,10 +25,13 @@ def main():
     for section in config.sections():
         
         def get(option):
-            return config.get(section, option) or defaults[option]
+            if option in defaults or config.has_option(section, option):
+                return config.get(section, option) or defaults[option]
+            else:
+                return None
         
         options = {}
-        for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat" ]:
+        for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat", "password" ]:
             options[option] = get(option)
         
         mode = get("mode")
@@ -81,6 +84,7 @@ class IRCRelayer(irc.IRCClient):
     
     def __init__(self, config):
         self.network = config['host']
+        self.password = config['password']
         self.channel = config['channel']
         self.nickname = config['nick']
         self.identifier = config['identifier']
