@@ -187,39 +187,27 @@ class NickServRelayer(SilentJoinPart):
     def signedOn(self):
         log.msg("[%s] Connected to network."%self.network)
         self.startHeartbeat()
-        if self.nickname == self.desiredNick:
-            log.msg("[%s] Identifying with %s."%(self.network, NickServRelayer.NickServ))
-            self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
-        else:
+        self.join(self.channel, "")
+        if self.nickname != self.desiredNick:
             log.msg("[%s] Using GHOST to reclaim nick %s."%(self.network, self.desiredNick))
             self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.desiredNick, self.password))
-    
+
     def noticed(self, user, channel, message):
-        #Either identification was successful, GHOSTing was successful, or the GHOST disconnected in the interim.
-        #NickServ implementations differ in the exact messages, and contain bolding/formatting.
-        if IRCRelayer.formatUsername(self, user).lower() == NickServRelayer.NickServ\
-            and (message.lower().startswith("password accepted") or\
-                 message.lower() == "ghost with your nickname has been killed." or\
-                 message.lower() == "ghost with your nick has been killed." or\
-                 message.lower().endswith("isn't currently in use.")):
-            if self.passwordAccepted:
-                log.msg("[%s] Recieved duplicate password acception from %s."%(self.network, NickServRelayer.NickServ))
-                return
-            log.msg("[%s] Identified with %s; joining %s."%(self.network, NickServRelayer.NickServ, self.channel))
-            self.passwordAccepted = True
-            if self.nickname != self.desiredNick:
+        log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
+        #Identify with nickserv if requested
+        if IRCRelayer.formatUsername(self, user).lower() == NickServRelayer.NickServ:
+            msg = message.lower()
+            if msg.startswith("this nickname is registered and protected"):
+                log.msg("[%s] Password requested; identifying with %s."%(self.network, NickServRelayer.NickServ))
+                self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
+            elif msg == "ghost with your nickname has been killed." or msg == "ghost with your nick has been killed.":
                 log.msg("[%s] GHOST successful, reclaiming nick %s."%(self.network,self.desiredNick))
                 self.setNick(self.desiredNick)
-            self.join(self.channel, "")
-        else:
-            log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
 
     def __init__(self, config):
         IRCRelayer.__init__(self, config)
-        #super(NickServRelayer, self).__init__(config)
         self.password = config['nickServPassword']
         self.desiredNick = config['nick']
-        self.passwordAccepted = False
 
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
