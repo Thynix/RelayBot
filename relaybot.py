@@ -21,21 +21,21 @@ def main():
     config = SafeConfigParser()
     config.read("relaybot.config")
     defaults = config.defaults()
-    
+
     for section in config.sections():
-        
+
         def get(option):
             if option in defaults or config.has_option(section, option):
                 return config.get(section, option) or defaults[option]
             else:
                 return None
-        
+
         options = {}
         for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat", "password" ]:
             options[option] = get(option)
-        
+
         mode = get("mode")
-        
+
         #Not using endpoints pending http://twistedmatrix.com/trac/ticket/4735
         #(ReconnectingClientFactory equivalent for endpoints.)
         factory = None
@@ -46,10 +46,10 @@ def main():
         elif mode == "NickServ":
             factory = NickServFactory
             options["nickServPassword"] = get("nickServPassword")
-        
+
         factory = factory(options)
         reactor.connectTCP(options['host'], int(options['port']), factory, int(options['timeout']))
-    
+
     reactor.callWhenRunning(signal, SIGINT, handler)
 
 class Communicator:
@@ -81,7 +81,7 @@ communicator = Communicator()
 class IRCRelayer(irc.IRCClient):
     realname = "Relay P. Botternson"
     username = "RelayBot"
-    
+
     def __init__(self, config):
         self.network = config['host']
         self.password = config['password']
@@ -102,18 +102,18 @@ class IRCRelayer(irc.IRCClient):
         log.msg("[%s] Connected to network."%self.network)
         self.startHeartbeat()
         self.join(self.channel, "")
-    
+
     def connectionLost(self, reason):
         log.msg("[%s] Connection lost, unregistering."%self.network)
         communicator.unregister(self)
-    
+
     def twoWaySay(self, message, args=None):
         self.say(self.channel, message)
-    
+
     def joined(self, channel):
         log.msg("Joined channel %s, registering."%channel)
         communicator.register(self)
-    
+
     def privmsg(self, user, channel, message):
         #If someone addresses the bot directly, respond in the same way.
         if channel == self.nickname:
@@ -125,36 +125,36 @@ class IRCRelayer(irc.IRCClient):
                 self.say(self.channel, self.privMsgResponse)
                 #For consistancy, if anyone responds to the bot's response:
                 self.relay("[%s] %s"%(self.formatUsername(self.nickname), self.privMsgResponse))
-    
+
     def kickedFrom(self, channel, kicker, message):
         log.msg("Kicked by %s. Message \"%s\""%(kicker, message))
         communicator.unregister(self)
-    
+
     def userJoined(self, user, channel):
         self.relay("%s joined."%self.formatUsername(user))
-    
+
     def userLeft(self, user, channel):
         self.relay("%s left."%self.formatUsername(user))
-    
+
     def userQuit(self, user, quitMessage):
         self.relay("%s quit. (%s)"%(self.formatUsername(user), quitMessage))
-    
+
     def action(self, user, channel, data):
         self.relay("* %s %s"%(self.formatUsername(user), data))
-    
+
     def userRenamed(self, oldname, newname):
         self.relay("%s is now known as %s."%(self.formatUsername(oldname), self.formatUsername(newname)))
-    
-     
+
+
 class RelayFactory(ReconnectingClientFactory):
     protocol = IRCRelayer
     #Log information which includes reconnection status.
     noisy = True
-    
+
     def __init__(self, config):
         config["identifier"] = "{0}{1}{2}".format(config["host"], config["port"], config["channel"])
         self.config = config
-    
+
     def buildProtocol(self, addr):
         #Connected - reset reconnect attempt delay.
         self.resetDelay()
@@ -213,7 +213,7 @@ class NickServRelayer(SilentJoinPart):
             self.join(self.channel, "")
         else:
             log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
-    
+
     def __init__(self, config):
         IRCRelayer.__init__(self, config)
         #super(NickServRelayer, self).__init__(config)
@@ -225,7 +225,7 @@ class NickServFactory(RelayFactory):
     protocol = NickServRelayer
 
 def handler(signum, frame):
-	reactor.stop()
+    reactor.stop()
 
 #Main if run as script, builtin for twistd.
 if __name__ in ["__main__", "__builtin__"]:
