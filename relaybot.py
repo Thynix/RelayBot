@@ -203,6 +203,9 @@ class NickServRelayer(SilentJoinPart):
             elif msg == "ghost with your nickname has been killed." or msg == "ghost with your nick has been killed.":
                 log.msg("[%s] GHOST successful, reclaiming nick %s."%(self.network,self.desiredNick))
                 self.setNick(self.desiredNick)
+            elif msg.endswith("isn't currently in use."):
+                log.msg("[%s] GHOST not needed, reclaiming nick %s."%(self.network,self,desiredNick))
+                self.setNick(self.desiredNick)
 
     def __init__(self, config):
         IRCRelayer.__init__(self, config)
