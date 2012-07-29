@@ -204,7 +204,7 @@ class NickServRelayer(SilentJoinPart):
                 log.msg("[%s] GHOST successful, reclaiming nick %s."%(self.network,self.desiredNick))
                 self.setNick(self.desiredNick)
             elif msg.endswith("isn't currently in use."):
-                log.msg("[%s] GHOST not needed, reclaiming nick %s."%(self.network,self,desiredNick))
+                log.msg("[%s] GHOST not needed, reclaiming nick %s."%(self.network,self.desiredNick))
                 self.setNick(self.desiredNick)
 
     def __init__(self, config):
