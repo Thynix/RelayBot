@@ -211,7 +211,7 @@ class NickServRelayer(SilentJoinPart):
             log.msg("[%s] Reclaiming desired nick in polling."%(self.network))
             self.setNick(self.desiredNick)
         else:
-            log.msg("[%s] Reclaimed desired nick with polling."%(self.network))
+            log.msg("[%s] Have desired nick."%(self.network))
             self.nickPoll.stop()
 
     def nickChanged(self, nick):
