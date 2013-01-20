@@ -95,6 +95,9 @@ class IRCRelayer(irc.IRCClient):
         self.username = config['username']
         self.realname = config['realname']
         log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(self.nickname, self.network, self.channel))
+        # IRC RFC: https://tools.ietf.org/html/rfc2812#page-4
+        if len(self.nickname) > 9:
+            log.msg("Nickname %s is %d characters long, which exceeds the RFC maximum of 9 characters. This may cause connection problems."%(self.nickname, len(self.nickname)))
 
     def formatUsername(self, username):
         return username.split("!")[0]
