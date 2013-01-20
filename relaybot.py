@@ -186,14 +186,37 @@ class FLIPFactory(RelayFactory):
 #Identify with NickServ upon connecting, and wait for recognition before joining the channel.
 class NickServRelayer(SilentJoinPart):
     NickServ = "nickserv"
+    NickPollInterval = 30
 
     def signedOn(self):
         log.msg("[%s] Connected to network."%self.network)
         self.startHeartbeat()
         self.join(self.channel, "")
+        self.checkDesiredNick()
+
+    def checkDesiredNick(self):
+        """
+        Checks that the nick is as desired, and if not attempts to retrieve it with
+        NickServ GHOST and trying again to change it after a polling interval.
+        """
         if self.nickname != self.desiredNick:
             log.msg("[%s] Using GHOST to reclaim nick %s."%(self.network, self.desiredNick))
             self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.desiredNick, self.password))
+            # If NickServ does not respond try to regain nick anyway.
+            self.nickPoll.start(self.NickPollInterval)
+
+    def regainNickPoll(self):
+        if self.nickname != self.desiredNick:
+            log.msg("[%s] Reclaiming desired nick in polling."%(self.network))
+            self.setNick(self.desiredNick)
+        else:
+            log.msg("[%s] Reclaimed desired nick with polling."%(self.network))
+            self.nickPoll.stop()
+
+    def nickChanged(self, nick):
+        log.msg("[%s] Nick changed from %s to %s."%(self.network, self.nickname, nick))
+        self.nickname = nick
+        self.checkDesiredNick()
 
     def noticed(self, user, channel, message):
         log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
@@ -214,6 +237,7 @@ class NickServRelayer(SilentJoinPart):
         IRCRelayer.__init__(self, config)
         self.password = config['nickServPassword']
         self.desiredNick = config['nick']
+        self.nickPoll = LoopingCall(self.regainNickPoll)
 
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
