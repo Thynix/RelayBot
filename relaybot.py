@@ -74,7 +74,7 @@ class Communicator:
             if identifier == protocol.identifier:
                 continue
             instance = self.protocolInstances[identifier]
-            instance.twoWaySay(message)
+            instance.sayToChannel(message)
 
 #Global scope: all protocol instances will need this.
 communicator = Communicator()
@@ -108,7 +108,7 @@ class IRCRelayer(irc.IRCClient):
         log.msg("[%s] Connection lost, unregistering."%self.network)
         communicator.unregister(self)
 
-    def twoWaySay(self, message, args=None):
+    def sayToChannel(self, message):
         self.say(self.channel, message)
 
     def joined(self, channel):
