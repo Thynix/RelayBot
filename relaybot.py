@@ -32,7 +32,7 @@ def main():
                 return None
 
         options = {}
-        for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat", "password" ]:
+        for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat", "password", "username", "realname" ]:
             options[option] = get(option)
 
         mode = get("mode")
@@ -83,8 +83,6 @@ class Communicator:
 communicator = Communicator()
 
 class IRCRelayer(irc.IRCClient):
-    realname = "Relay P. Botternson"
-    username = "RelayBot"
 
     def __init__(self, config):
         self.network = config['host']
@@ -94,6 +92,8 @@ class IRCRelayer(irc.IRCClient):
         self.identifier = config['identifier']
         self.privMsgResponse = config['info']
         self.heartbeatInterval = float(config['heartbeat'])
+        self.username = config['username']
+        self.realname = config['realname']
         log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(self.nickname, self.network, self.channel))
 
     def formatUsername(self, username):

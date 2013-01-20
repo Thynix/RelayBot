@@ -9,6 +9,8 @@ nick=RelayBot
 mode=Default
 #Response sent when addressed with <nickname>: or privmsg'd.
 info=This is a relay bot.
+username=RelayBot
+realname=Relay P. Botterson
 heartbeat=90
 
 [Freenode]
