@@ -3,6 +3,7 @@ from twisted.internet import reactor, protocol
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.python import log
 from twisted.internet.endpoints import clientFromString
+from twisted.internet.task import LoopingCall
 from twisted.application import service
 from signal import signal, SIGINT
 from ConfigParser import SafeConfigParser
