@@ -47,6 +47,9 @@ def main():
         elif mode == "NickServ":
             factory = NickServFactory
             options["nickServPassword"] = get("nickServPassword")
+        elif mode == "ReadOnly":
+            factory = ReadOnlyFactory
+            options["nickServPassword"] = get("nickServPassword")
 
         factory = factory(options)
         reactor.connectTCP(options['host'], int(options['port']), factory, int(options['timeout']))
@@ -238,6 +241,13 @@ class NickServRelayer(SilentJoinPart):
         self.password = config['nickServPassword']
         self.desiredNick = config['nick']
         self.nickPoll = LoopingCall(self.regainNickPoll)
+
+class ReadOnlyRelayer(NickServRelayer):
+    def sayToChannel(self, message):
+        pass
+
+class ReadOnlyFactory(RelayFactory):
+    protocol = ReadOnlyRelayer
 
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
