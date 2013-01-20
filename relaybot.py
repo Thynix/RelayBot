@@ -184,7 +184,6 @@ class FLIPRelayer(SilentJoinPart):
 class FLIPFactory(RelayFactory):
     protocol = FLIPRelayer
 
-#Identify with NickServ upon connecting, and wait for recognition before joining the channel.
 class NickServRelayer(SilentJoinPart):
     NickServ = "nickserv"
     NickPollInterval = 30
