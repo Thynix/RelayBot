@@ -172,6 +172,9 @@ class SilentJoinPart(IRCRelayer):
     def userQuit(self, user, quitMessage):
         pass
 
+    def userRenamed(self, oldname, newname):
+        pass
+
 #Remove the _<numbers> that FLIP puts on the end of usernames.
 class FLIPRelayer(SilentJoinPart):
     def formatUsername(self, username):
