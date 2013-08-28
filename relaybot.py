@@ -1,13 +1,14 @@
 from twisted.words.protocols import irc
-from twisted.internet import reactor, protocol
+from twisted.internet import reactor
 from twisted.internet.protocol import ReconnectingClientFactory
-from twisted.python import log
-from twisted.internet.endpoints import clientFromString
 from twisted.internet.task import LoopingCall
+from twisted.python import log
 from twisted.application import service
 from signal import signal, SIGINT
 from ConfigParser import SafeConfigParser
-import re, sys
+import sys
+from tempfile import TemporaryFile
+import subprocess
 
 #
 # RelayBot is a derivative of http://code.google.com/p/relaybot/
@@ -17,6 +18,7 @@ log.startLogging(sys.stdout)
 
 __version__ = "0.1"
 application = service.Application("RelayBot")
+
 
 def main():
     config = SafeConfigParser()
@@ -32,7 +34,9 @@ def main():
                 return None
 
         options = {}
-        for option in [ "timeout", "host", "port", "nick", "channel", "info", "heartbeat", "password", "username", "realname" ]:
+        for option in ["timeout", "host", "port", "nick", "channel",
+                       "heartbeat", "password", "username", "realname",
+                       "recognizedNicks", "program"]:
             options[option] = get(option)
 
         mode = get("mode")
@@ -42,45 +46,14 @@ def main():
         factory = None
         if mode == "Default":
             factory = RelayFactory
-        elif mode == "FLIP":
-            factory = FLIPFactory
         elif mode == "NickServ":
             factory = NickServFactory
             options["nickServPassword"] = get("nickServPassword")
-        elif mode == "ReadOnly":
-            factory = ReadOnlyFactory
-            options["nickServPassword"] = get("nickServPassword")
-
         factory = factory(options)
         reactor.connectTCP(options['host'], int(options['port']), factory, int(options['timeout']))
 
     reactor.callWhenRunning(signal, SIGINT, handler)
 
-class Communicator:
-    def __init__(self):
-        self.protocolInstances = {}
-
-    def register(self, protocol):
-        self.protocolInstances[protocol.identifier] = protocol
-
-    def isRegistered(self, protocol):
-        return protocol.identifier in self.protocolInstances
-
-    def unregister(self, protocol):
-        if protocol.identifier not in self.protocolInstances:
-            log.msg("No protocol instance with identifier %s."%protocol.identifier)
-            return
-        del self.protocolInstances[protocol.identifier]
-
-    def relay(self, protocol, message):
-        for identifier in self.protocolInstances.keys():
-            if identifier == protocol.identifier:
-                continue
-            instance = self.protocolInstances[identifier]
-            instance.sayToChannel(message)
-
-#Global scope: all protocol instances will need this.
-communicator = Communicator()
 
 class IRCRelayer(irc.IRCClient):
 
@@ -90,67 +63,71 @@ class IRCRelayer(irc.IRCClient):
         self.channel = config['channel']
         self.nickname = config['nick']
         self.identifier = config['identifier']
-        self.privMsgResponse = config['info']
         self.heartbeatInterval = float(config['heartbeat'])
         self.username = config['username']
         self.realname = config['realname']
-        log.msg("IRC Relay created. Name: %s | Host: %s | Channel: %s"%(self.nickname, self.network, self.channel))
+        self.recognized_nicks = config['recognizedNicks'].split(',')
+        self.program = config['program']
+
+        log.msg("IRC Relay created. Name: {0} | Host: {1} | Channel: {2}"
+                .format(self.nickname, self.network, self.channel))
+
         # IRC RFC: https://tools.ietf.org/html/rfc2812#page-4
         if len(self.nickname) > 9:
-            log.msg("Nickname %s is %d characters long, which exceeds the RFC maximum of 9 characters. This may cause connection problems."%(self.nickname, len(self.nickname)))
+            log.msg("Nickname {0} is {1} characters long, which exceeds the "
+                    "RFC maximum of 9 characters. This may cause connection "
+                    "problems.".format(self.nickname, len(self.nickname)))
 
     def formatUsername(self, username):
         return username.split("!")[0]
 
-    def relay(self, message):
-        communicator.relay(self, message)
-
     def signedOn(self):
-        log.msg("[%s] Connected to network."%self.network)
+        log.msg("[{0}] Connected to network.".format(self.network))
         self.startHeartbeat()
         self.join(self.channel, "")
 
     def connectionLost(self, reason):
-        log.msg("[%s] Connection lost, unregistering."%self.network)
-        communicator.unregister(self)
+        log.msg("[{0}] Connection lost.",format(self.network))
 
     def sayToChannel(self, message):
         self.say(self.channel, message)
 
     def joined(self, channel):
-        log.msg("Joined channel %s, registering."%channel)
-        communicator.register(self)
+        log.msg("Joined channel {0}.".format(channel))
 
     def privmsg(self, user, channel, message):
-        #If someone addresses the bot directly, respond in the same way.
+        #If someone addresses the bot directly.
         if channel == self.nickname:
-            log.msg("Recieved privmsg from %s."%user)
-            self.msg(user, self.privMsgResponse)
-        else:
-            self.relay("[%s] %s"%(self.formatUsername(user), message))
-            if message.startswith(self.nickname + ':'):
-                self.say(self.channel, self.privMsgResponse)
-                #For consistancy, if anyone responds to the bot's response:
-                self.relay("[%s] %s"%(self.formatUsername(self.nickname), self.privMsgResponse))
+            if user in self.recognized_nicks:
+                log.msg("Received privmsg from recognized {0}.".format(user))
+
+                # Create input and output of processing program. StringIO
+                # file objects are insufficient for these purposes -
+                # apparently they must have real file descriptors.
+                in_file = TemporaryFile()
+                out_file = TemporaryFile()
+
+                in_file.write(message)
+                in_file.flush()
+
+                ret_code = subprocess.call(self.program, stdin=in_file,
+                                           stdout=out_file)
+
+                if ret_code != 0:
+                    self.msg(user, "Program {0} failed with return code {1}."
+                             .format(self.program, ret_code))
+                    return
+
+                # Return output file to the beginning before reading.
+                out_file.seek(0)
+
+                for line in out_file:
+                    self.msg(user, line)
+            else:
+                log.msg("Received privmsg from unrecognized {0}.".format(user))
 
     def kickedFrom(self, channel, kicker, message):
-        log.msg("Kicked by %s. Message \"%s\""%(kicker, message))
-        communicator.unregister(self)
-
-    def userJoined(self, user, channel):
-        self.relay("%s joined."%self.formatUsername(user))
-
-    def userLeft(self, user, channel):
-        self.relay("%s left."%self.formatUsername(user))
-
-    def userQuit(self, user, quitMessage):
-        self.relay("%s quit. (%s)"%(self.formatUsername(user), quitMessage))
-
-    def action(self, user, channel, data):
-        self.relay("* %s %s"%(self.formatUsername(user), data))
-
-    def userRenamed(self, oldname, newname):
-        self.relay("%s is now known as %s."%(self.formatUsername(oldname), self.formatUsername(newname)))
+        log.msg("Kicked by {0}. Message \"{1}\"".format(kicker, message))
 
 
 class RelayFactory(ReconnectingClientFactory):
@@ -169,28 +146,7 @@ class RelayFactory(ReconnectingClientFactory):
         x.factory = self
         return x
 
-class SilentJoinPart(IRCRelayer):
-    def userJoined(self, user, channel):
-        pass
-
-    def userLeft(self, user, channel):
-        pass
-
-    def userQuit(self, user, quitMessage):
-        pass
-
-    def userRenamed(self, oldname, newname):
-        pass
-
-#Remove the _<numbers> that FLIP puts on the end of usernames.
-class FLIPRelayer(SilentJoinPart):
-    def formatUsername(self, username):
-        return re.sub("_\d+$", "", IRCRelayer.formatUsername(self, username))
-
-class FLIPFactory(RelayFactory):
-    protocol = FLIPRelayer
-
-class NickServRelayer(SilentJoinPart):
+class NickServRelayer(IRCRelayer):
     NickServ = "nickserv"
     NickPollInterval = 30
 
@@ -244,13 +200,6 @@ class NickServRelayer(SilentJoinPart):
         self.password = config['nickServPassword']
         self.desiredNick = config['nick']
         self.nickPoll = LoopingCall(self.regainNickPoll)
-
-class ReadOnlyRelayer(NickServRelayer):
-    def sayToChannel(self, message):
-        pass
-
-class ReadOnlyFactory(RelayFactory):
-    protocol = ReadOnlyRelayer
 
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
