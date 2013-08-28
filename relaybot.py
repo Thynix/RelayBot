@@ -87,7 +87,7 @@ class IRCRelayer(irc.IRCClient):
         self.join(self.channel, "")
 
     def connectionLost(self, reason):
-        log.msg("[{0}] Connection lost.".format(self.network))
+        log.msg("[{0}] Connection lost: \"{1}\"".format(self.network, reason))
 
     def sayToChannel(self, message):
         self.say(self.channel, message)
