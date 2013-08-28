@@ -12,6 +12,8 @@ realname=Relay P. Botterson
 heartbeat=90
 recognizedNicks=me,myself,I
 program=bowling_jokes.sh
+# Change to True use use SSL.
+useSSL=False
 
 # Each section outside of DEFAULT starts a bot.
 [Freenode]

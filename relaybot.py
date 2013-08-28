@@ -36,7 +36,7 @@ def main():
         options = {}
         for option in ["timeout", "host", "port", "nick", "channel",
                        "heartbeat", "password", "username", "realname",
-                       "recognizedNicks", "program"]:
+                       "recognizedNicks", "program", "useSSL"]:
             options[option] = get(option)
 
         mode = get("mode")
@@ -137,6 +137,7 @@ class RelayFactory(ReconnectingClientFactory):
 
     def __init__(self, config):
         config["identifier"] = "{0}{1}{2}".format(config["host"], config["port"], config["channel"])
+        config['useSSL'] = config['useSSL'] == 'True'
         self.config = config
 
     def buildProtocol(self, addr):
