@@ -1,25 +1,23 @@
-#Can override these defaults per-section.
+# Can override these defaults per-section.
 [DEFAULT]
-#Twisted's default is 30 seconds.
+# Twisted's default is 30 seconds.
 timeout=120
 port=6667
-channel=#a-bridged-channel
+channel=#join-this
 nick=RelayBot
-#Can change to allow more specialized behavior.
+# Can change to allow more specialized behavior.
 mode=Default
-#Response sent when addressed with <nickname>: or privmsg'd.
-info=This is a relay bot.
 username=RelayBot
 realname=Relay P. Botterson
 heartbeat=90
+recognizedNicks=me,myself,I
+program=bowling_jokes.sh
 
+# Each section outside of DEFAULT starts a bot.
 [Freenode]
 host=irc.freenode.net
 mode=NickServ
 nickServPassword=applesAndOranges
-#Server password: can leave unspecified if there isn't one.
+# Server password: can leave unspecified if there isn't one.
 password=ItsASecretToEveryone
-
-[Umich]
-host=irc.umich.edu
 
