@@ -87,7 +87,7 @@ class IRCRelayer(irc.IRCClient):
         self.join(self.channel, "")
 
     def connectionLost(self, reason):
-        log.msg("[{0}] Connection lost.",format(self.network))
+        log.msg("[{0}] Connection lost.".format(self.network))
 
     def sayToChannel(self, message):
         self.say(self.channel, message)
@@ -152,7 +152,7 @@ class NickServRelayer(IRCRelayer):
     NickPollInterval = 30
 
     def signedOn(self):
-        log.msg("[%s] Connected to network."%self.network)
+        log.msg("[{0}] Connected to network.".format(self.network))
         self.startHeartbeat()
         self.join(self.channel, "")
         self.checkDesiredNick()
@@ -163,37 +163,48 @@ class NickServRelayer(IRCRelayer):
         NickServ GHOST and trying again to change it after a polling interval.
         """
         if self.nickname != self.desiredNick:
-            log.msg("[%s] Using GHOST to reclaim nick %s."%(self.network, self.desiredNick))
-            self.msg(NickServRelayer.NickServ, "GHOST %s %s"%(self.desiredNick, self.password))
+            log.msg("[{0}] Using GHOST to reclaim nick {1}."
+                    .format(self.network, self.desiredNick))
+            self.msg(NickServRelayer.NickServ,
+                     "GHOST {0} {1}".format(self.desiredNick, self.password))
             # If NickServ does not respond try to regain nick anyway.
             self.nickPoll.start(self.NickPollInterval)
 
     def regainNickPoll(self):
         if self.nickname != self.desiredNick:
-            log.msg("[%s] Reclaiming desired nick in polling."%(self.network))
+            log.msg("[{0}] Reclaiming desired nick in polling."
+                    .format(self.network))
             self.setNick(self.desiredNick)
         else:
-            log.msg("[%s] Have desired nick."%(self.network))
+            log.msg("[{0}] Have desired nick.".format(self.network))
             self.nickPoll.stop()
 
     def nickChanged(self, nick):
-        log.msg("[%s] Nick changed from %s to %s."%(self.network, self.nickname, nick))
+        log.msg("[{0}] Nick changed from {1} to {2}."
+                .format(self.network, self.nickname, nick))
         self.nickname = nick
         self.checkDesiredNick()
 
     def noticed(self, user, channel, message):
-        log.msg("[%s] Recieved notice \"%s\" from %s."%(self.network, message, user))
+        log.msg("[{0}] Received notice \"{1}\" from {2}."
+                .format(self.network, message, user))
+
         #Identify with nickserv if requested
         if IRCRelayer.formatUsername(self, user).lower() == NickServRelayer.NickServ:
             msg = message.lower()
             if msg.startswith("this nickname is registered and protected"):
-                log.msg("[%s] Password requested; identifying with %s."%(self.network, NickServRelayer.NickServ))
-                self.msg(NickServRelayer.NickServ, "IDENTIFY %s"%self.password)
-            elif msg == "ghost with your nickname has been killed." or msg == "ghost with your nick has been killed.":
-                log.msg("[%s] GHOST successful, reclaiming nick %s."%(self.network,self.desiredNick))
+                log.msg("[{0}] Password requested; identifying with {1}."
+                        .format(self.network, NickServRelayer.NickServ))
+                self.msg(NickServRelayer.NickServ, "IDENTIFY {0}"
+                         .format(self.password))
+            elif msg == "ghost with your nickname has been killed."\
+                    or msg == "ghost with your nick has been killed.":
+                log.msg("[{0}] GHOST successful, reclaiming nick {1}."
+                        .format(self.network, self.desiredNick))
                 self.setNick(self.desiredNick)
             elif msg.endswith("isn't currently in use."):
-                log.msg("[%s] GHOST not needed, reclaiming nick %s."%(self.network,self.desiredNick))
+                log.msg("[{0}] GHOST not needed, reclaiming nick {1}."
+                        .format(self.network, self.desiredNick))
                 self.setNick(self.desiredNick)
 
     def __init__(self, config):
@@ -202,8 +213,10 @@ class NickServRelayer(IRCRelayer):
         self.desiredNick = config['nick']
         self.nickPoll = LoopingCall(self.regainNickPoll)
 
+
 class NickServFactory(RelayFactory):
     protocol = NickServRelayer
+
 
 def handler(signum, frame):
     reactor.stop()
