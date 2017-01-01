@@ -1,5 +1,7 @@
 # RelayBot
 
+## Superseded by [str4d's fork](https://github.com/str4d/RelayBot)
+
 A two-way IRC bridge bot for bridging multiple arbitrary IRC channels. It is written in Python and uses [Twisted](http://twistedmatrix.com/trac/). It is based off of [relaybot](http://code.google.com/p/relaybot/), and aims to be less complicated by doing less.
 
 This was written as I gutted `relaybot` while trying stop the second relay bot from failing to connect, preventing the relay from functioning. As such, it does not provide `relaybot`'s support for runtime configuration changes or passworded channels. The design does not unduly impede the implementation of these abilities if need be. Unlike `relaybot`, `RelayBot` allows connecting to different ports on the same host simultaniously.
